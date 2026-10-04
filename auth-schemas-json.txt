@@ -4,10 +4,10 @@ KILIVANA AUTH SCHEMAS - JSON SNAPSHOT
 Copy-paste these four schemas for Android integration:
 
 1. LOGIN REQUEST:
-{"type":"object","required":["email","password"],"properties":{"email":{"type":"string"},"password":{"type":"string"}}}
+{"type":"object","required":["identifier","password"],"properties":{"identifier":{"type":"string"},"password":{"type":"string"}}}
 
 2. AUTH RESPONSE (LOGIN RESPONSE):
-{"type":"object","properties":{"userId":{"type":"string","format":"uuid"},"email":{"type":"string"},"fullName":{"type":"string"},"role":{"type":"string","enum":["BUYER","SUPPLIER","FARMER","INSPECTOR","DRIVER","ADMIN"]},"accessToken":{"type":"string"},"refreshToken":{"type":"string"},"refreshTokenExpiresAt":{"type":"string","format":"date-time"}}}
+{"type":"object","properties":{"userId":{"type":"string","format":"uuid"},"email":{"type":"string"},"username":{"type":"string","minLength":3,"maxLength":30,"pattern":"[a-z][a-z0-9_]{2,29}"},"region":{"type":"string"},"phoneNumber":{"type":"string"},"verificationStatus":{"type":"string","enum":["UNVERIFIED","PENDING","VERIFIED"]},"fullName":{"type":"string"},"role":{"type":"string","enum":["BUYER","SUPPLIER","FARMER","INSPECTOR","DRIVER","ADMIN"]},"accessToken":{"type":"string"},"refreshToken":{"type":"string"},"refreshTokenExpiresAt":{"type":"string","format":"date-time"}}}
 
 3. REFRESH TOKEN REQUEST:
 {"type":"object","required":["refreshToken"],"properties":{"refreshToken":{"maxLength":512,"minLength":0,"type":"string"}}}
@@ -22,7 +22,7 @@ POST /api/v1/auth/login        -> LoginRequest -> AuthResponse
 POST /api/v1/auth/refresh      -> RefreshTokenRequest -> AuthResponse  
 POST /api/v1/auth/logout       -> LogoutRequest -> 200 OK
 
-All tokens are JWT (HS256), access token TTL: 15 min, refresh token TTL: 14 days
+Access tokens are JWT (HS256); refresh tokens are opaque, access token TTL: 15 min, refresh token TTL: 14 days
 API Base: /api/v1 (local: http://localhost:8080, tunnel via ngrok)
 
 ======================================
@@ -30,7 +30,7 @@ ANDROID USAGE EXAMPLE (Kotlin):
 ======================================
 
 // 1. Login
-val loginReq = LoginRequest(email="user@test.com", password="pass123")
+val loginReq = LoginRequest(identifier="user@test.com", password="pass123")
 val loginRes = apiService.login(loginReq) // returns AuthResponse
 authRepository.saveToken(loginRes.accessToken, loginRes.refreshToken)
 
@@ -46,3 +46,4 @@ authRepository.saveToken(refreshRes.accessToken, refreshRes.refreshToken)
 // 4. Logout
 apiService.logout(LogoutRequest(refreshToken=authRepository.refreshToken))
 authRepository.clearTokens()
+Signup and profile identity rules: docs/account-auth-contract.md

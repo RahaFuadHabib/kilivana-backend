@@ -20,6 +20,16 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByRole(UserRole role);
 
+    Optional<User> findByPhoneNumber(String phoneNumber);
+
+    boolean existsByPhoneNumber(String phoneNumber);
+
+    boolean existsByUsername(String username);
+
+    boolean existsByPhoneNumberAndIdNot(String phoneNumber, UUID id);
+
+    boolean existsByUsernameAndIdNot(String username, UUID id);
+
     List<User> findAllByRole(UserRole role);
 
     List<User> findAllByOrderByCreatedAtDesc();

@@ -19,13 +19,19 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true, length = 120)
     private String email;
 
+    @Column(nullable = false, unique = true, length = 30)
+    private String username;
+
+    @Column(length = 200)
+    private String region;
+
     @Column(nullable = false, length = 120)
     private String passwordHash;
 
     @Column(nullable = false, length = 100)
     private String fullName;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, unique = true, length = 20)
     private String phoneNumber;
 
     @Enumerated(EnumType.STRING)
@@ -54,6 +60,7 @@ public class User extends BaseEntity {
             UserRole role,
             UserStatus status) {
         this.email = email;
+        this.username = "u_" + new java.math.BigInteger(java.util.UUID.randomUUID().toString().replace("-", ""), 16).toString(36);
         this.passwordHash = passwordHash;
         this.fullName = fullName;
         this.phoneNumber = phoneNumber;
@@ -61,6 +68,14 @@ public class User extends BaseEntity {
         this.status = status;
         this.verificationStatus = VerificationStatus.UNVERIFIED;
     }
+
+    public String getUsername() { return username; }
+
+    public void setUsername(String username) { this.username = username; }
+
+    public String getRegion() { return region; }
+
+    public void setRegion(String region) { this.region = region; }
 
     public String getEmail() {
         return email;

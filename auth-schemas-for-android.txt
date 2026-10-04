@@ -8,16 +8,16 @@ Based on OpenAPI spec.json from Kilivana Backend (Java Spring Boot 3.3.x)
 ------------------------------------------------------------
 {
   "type": "object",
-  "required": ["email", "password"],
+  "required": ["identifier", "password"],
   "properties": {
-    "email": {"type": "string"},           // User's email address
+    "identifier": {"type": "string"},           // Email or Kenyan phone; never username
     "password": {"type": "string"}          // User's password
   }
 }
 
 Android Kotlin/Java usage:
 ----------------------
-val loginRequest = LoginRequest(email = "user@example.com", password = "password123")
+val loginRequest = LoginRequest(identifier = "user@example.com", password = "password123")
 val response = apiService.login(loginRequest)
 
 
@@ -29,13 +29,17 @@ val response = apiService.login(loginRequest)
   "properties": {
     "userId": {"type": "string", "format": "uuid"},       // User's UUID
     "email": {"type": "string"},                         // User's email
+    "username": {"type": "string", "minLength": 3, "maxLength": 30, "pattern": "[a-z][a-z0-9_]{2,29}"},
+    "region": {"type": "string"},
+    "phoneNumber": {"type": "string"},
+    "verificationStatus": {"type": "string", "enum": ["UNVERIFIED", "PENDING", "VERIFIED"]},
     "fullName": {"type": "string"},                      // User's full name
     "role": {
       "type": "string",
       "enum": ["BUYER", "SUPPLIER", "FARMER", "INSPECTOR", "DRIVER", "ADMIN"]
     },                       // User's role
     "accessToken": {"type": "string"},                   // JWT access token (15 min TTL)
-    "refreshToken": {"type": "string"},                  // JWT refresh token (14 days TTL)
+    "refreshToken": {"type": "string"},                  // Opaque refresh token (14 days TTL)
     "refreshTokenExpiresAt": {"type": "string", "format": "date-time"}  // Expiry timestamp
   }
 }
@@ -114,3 +118,4 @@ OR share these four schemas directly via:
 
 ------------------------------------------------------------
 END OF DOCUMENT
+Signup and profile identity rules: docs/account-auth-contract.md

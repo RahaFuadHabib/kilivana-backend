@@ -40,6 +40,7 @@ public class AuthController {
                 .body(authService.signup(request));
     }
 
+    @Operation(summary = "Login using email or Kenyan phone", description = "identifier accepts email or a Kenyan phone number. Username is not a login identifier.")
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok()

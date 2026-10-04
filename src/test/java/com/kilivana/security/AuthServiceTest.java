@@ -136,8 +136,21 @@ class AuthServiceTest {
         when(passwordEncoder.encode("secretPass1")).thenReturn("encoded");
         when(jwtService.generateAccessToken(any(User.class))).thenReturn("access-token");
         AuthResponse response = authService.signup(new SignupRequest(
-                "inspector@example.com", "secretPass1", "Inspector", "+254700000001", UserRole.INSPECTOR,
-                null, null, null, "  any code  ", null, null, null, null));
+                "inspector@example.com",
+                "secretPass1",
+                "Inspector",
+                "+254700000001",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
+                UserRole.INSPECTOR,
+                null,
+                null,
+                null,
+                "  any code  ",
+                null,
+                null,
+                null,
+                null));
         ArgumentCaptor<com.kilivana.users.domain.InspectorProfile> profile =
                 ArgumentCaptor.forClass(com.kilivana.users.domain.InspectorProfile.class);
         verify(entityManager).persist(profile.capture());
@@ -154,8 +167,21 @@ class AuthServiceTest {
     void invalidInspectorCodesAreRejectedBeforePersistence() {
         for (String code : new String[]{null, "", "   ", "x".repeat(101)}) {
             assertThatThrownBy(() -> authService.signup(new SignupRequest(
-                    "inspector@example.com", "secretPass1", "Inspector", "+254700000001", UserRole.INSPECTOR,
-                    null, null, null, code, null, null, null, null)))
+                "inspector@example.com",
+                "secretPass1",
+                "Inspector",
+                "+254700000001",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
+                UserRole.INSPECTOR,
+                null,
+                null,
+                null,
+                code,
+                null,
+                null,
+                null,
+                null)))
                     .isInstanceOf(BusinessConflictException.class);
         }
         verifyNoInteractions(userRepository, passwordEncoder, entityManager, refreshTokenRepository);
@@ -167,6 +193,8 @@ class AuthServiceTest {
                 "secretPass1",
                 "Buyer",
                 "+254700000000",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
                 role,
                 null,
                 null,

@@ -9,6 +9,9 @@ import java.util.UUID;
 public record AuthResponse(
         UUID userId,
         String email,
+        @Schema(minLength = 3, maxLength = 30, pattern = "[a-z][a-z0-9_]{2,29}") String username,
+        String region,
+        String phoneNumber,
         String fullName,
         UserRole role,
         @Schema(description = "Authoritative verification state. Inspector privileges require VERIFIED; PENDING inspectors may authenticate.")

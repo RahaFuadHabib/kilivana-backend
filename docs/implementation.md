@@ -232,3 +232,6 @@ JSON payloads use request records with Jakarta Bean Validation (`@NotNull`, `@No
 - Rate limiting defaults to a Redis-backed fixed-window counter (`RATE_LIMIT_BACKEND=redis`, `matchIfMissing`); set `RATE_LIMIT_BACKEND=memory` for a single-instance in-memory counter.
 - Multi-seller carts are implemented; the public catalog browse (`GET /products`) returns an unpaged list (clients paginate client-side), while admin list endpoints use Spring Data pagination.
 - Email is delivered only once `MAIL_HOST`/`MAIL_USERNAME`/`MAIL_PASSWORD` are configured (dev runs disable the mail health check via `MANAGEMENT_HEALTH_MAIL_ENABLED=false`).
+## Canonical account identity (V11)
+
+See [account/auth contract](account-auth-contract.md) for required username and region, Kenyan phone normalization and uniqueness, identifier-based email/phone login, profile update semantics, and the V10-to-V11 migration/backfill.

@@ -5,6 +5,7 @@ import com.kilivana.media.MediaStorageException;
 import com.kilivana.common.exception.AuthenticationFailedException;
 import com.kilivana.common.exception.BusinessConflictException;
 import com.kilivana.common.exception.InvalidTokenException;
+import com.kilivana.common.exception.InvalidAccountDataException;
 import com.kilivana.common.exception.ResourceNotFoundException;
 import com.kilivana.common.exception.UnauthorizedOperationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -97,6 +98,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MultipartException.class)
     public ResponseEntity<ApiError> handleMultipart(MultipartException exception, HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "MULTIPART_ERROR", "Multipart request is invalid", request, List.of());
+    }
+
+    @ExceptionHandler(InvalidAccountDataException.class)
+    public ResponseEntity<ApiError> handleAccountValidation(InvalidAccountDataException exception, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", exception.getMessage(), request, List.of());
     }
 
     @ExceptionHandler(MediaStorageException.class)

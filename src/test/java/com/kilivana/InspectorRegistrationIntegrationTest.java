@@ -20,8 +20,22 @@ class InspectorRegistrationIntegrationTest extends IntegrationTestSupport {
     @Autowired InspectorProfileRepository profiles;
 
     static SignupRequest request(UserRole role, String code) {
-        return new SignupRequest("signup@example.com", "secretPass1", "Test User", "+254700000001",
-                role, "Business", "Farm", "Nairobi", code, null, null, null, null);
+        return new SignupRequest(
+                "signup@example.com",
+                "secretPass1",
+                "Test User",
+                "+254700000001",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
+                role,
+                "Business",
+                "Farm",
+                null,
+                code,
+                null,
+                null,
+                null,
+                null);
     }
 
     @org.junit.jupiter.api.Test
@@ -32,6 +46,12 @@ class InspectorRegistrationIntegrationTest extends IntegrationTestSupport {
         assertThat(schemas.path("SignupRequest").path("properties").path("role").path("enum"))
                 .isEqualTo(objectMapper.valueToTree(java.util.List.of("BUYER", "FARMER", "SUPPLIER", "INSPECTOR")));
         assertThat(schemas.path("SignupRequest").path("properties").path("employeeCode").path("maxLength").asInt()).isEqualTo(100);
+        for (String schema : new String[]{"SignupRequest", "UpdateUserProfileRequest", "AuthResponse", "UserProfileResponse"}) {
+            var username = schemas.path(schema).path("properties").path("username");
+            assertThat(username.path("minLength").asInt()).isEqualTo(3);
+            assertThat(username.path("maxLength").asInt()).isEqualTo(30);
+            assertThat(username.path("pattern").asText()).isEqualTo("[a-z][a-z0-9_]{2,29}");
+        }
         assertThat(schemas.path("AuthResponse").path("properties").has("verificationStatus")).isTrue();
         assertThat(document.path("paths").path("/api/v1/auth/signup").path("post").path("description").asText()).contains("PENDING");
         java.nio.file.Files.writeString(java.nio.file.Path.of("target/inspector-openapi.json"), document.toPrettyString());
@@ -41,8 +61,22 @@ class InspectorRegistrationIntegrationTest extends IntegrationTestSupport {
     void employeeCodeAcceptsOneHundredCharactersAndIsNotUnique() throws Exception {
         SignupRequest first = request(UserRole.INSPECTOR, "x".repeat(100));
         signup(first);
-        signup(new SignupRequest("second@example.com", first.password(), first.fullName(), first.phoneNumber(),
-                first.role(), null, null, null, first.employeeCode(), null, null, null, null));
+        signup(new SignupRequest(
+                "second@example.com",
+                first.password(),
+                first.fullName(),
+                "+254700000002",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
+                first.role(),
+                null,
+                null,
+                null,
+                first.employeeCode(),
+                null,
+                null,
+                null,
+                null));
         assertThat(profiles.count()).isEqualTo(2);
     }
 

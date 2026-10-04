@@ -58,19 +58,21 @@ class AdminFlowIntegrationTest extends IntegrationTestSupport {
         mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsBytes(new SignupRequest(
-                                "fake-admin@example.com",
-                                "secretPass1",
-                                "Fake Admin",
-                                "+254700000098",
-                                UserRole.ADMIN,
-                                null,
-                                null,
-                                null,
-                                null,
-                                null,
-                                null,
-                                null,
-                                null))))
+                "fake-admin@example.com",
+                "secretPass1",
+                "Fake Admin",
+                "+254700000098",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
+                UserRole.ADMIN,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("BUSINESS_CONFLICT"));
     }
@@ -84,6 +86,8 @@ class AdminFlowIntegrationTest extends IntegrationTestSupport {
                 "secretPass1",
                 "Supplier User",
                 "+254700000001",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
                 UserRole.SUPPLIER,
                 "Green Supply Ltd",
                 null,
@@ -114,6 +118,8 @@ class AdminFlowIntegrationTest extends IntegrationTestSupport {
                 "secretPass1",
                 "Supplier User",
                 "+254700000001",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
                 UserRole.SUPPLIER,
                 "Green Supply Ltd",
                 null,

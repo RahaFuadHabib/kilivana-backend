@@ -29,8 +29,22 @@ class InspectorAuthorizationIntegrationTest extends IntegrationTestSupport {
     @Autowired InspectionRepository inspections;
 
     private SignupRequest request(String email, UserRole role) {
-        return new SignupRequest(email, "secretPass1", "Test User", "+254700000001", role,
-                "Business", "Farm", "Nairobi", "employee", null, null, null, null);
+        return new SignupRequest(
+                email,
+                "secretPass1",
+                "Test User",
+                com.kilivana.support.TestAccounts.nextPhone(),
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
+                role,
+                "Business",
+                "Farm",
+                null,
+                "employee",
+                null,
+                null,
+                null,
+                null);
     }
 
     private MockHttpServletRequestBuilder json(MockHttpServletRequestBuilder builder, Object body) throws Exception {

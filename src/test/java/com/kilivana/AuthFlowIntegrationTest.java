@@ -20,6 +20,8 @@ class AuthFlowIntegrationTest extends IntegrationTestSupport {
                 "secretPass1",
                 "Supplier User",
                 "+254700000001",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
                 UserRole.SUPPLIER,
                 "Green Supply Ltd",
                 null,

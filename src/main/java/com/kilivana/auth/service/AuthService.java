@@ -6,6 +6,7 @@ import com.kilivana.auth.api.RefreshTokenRequest;
 import com.kilivana.auth.api.SignupRequest;
 import com.kilivana.common.exception.AuthenticationFailedException;
 import com.kilivana.common.exception.BusinessConflictException;
+import com.kilivana.common.exception.InvalidAccountDataException;
 import com.kilivana.security.JwtProperties;
 import com.kilivana.security.JwtService;
 import com.kilivana.security.TokenService;
@@ -13,7 +14,6 @@ import com.kilivana.users.domain.BuyerProfile;
 import com.kilivana.users.domain.InspectorProfile;
 import com.kilivana.users.domain.VerificationStatus;
 import com.kilivana.users.domain.FarmerProfile;
-import com.kilivana.users.domain.InspectorProfile;
 import com.kilivana.users.domain.RefreshToken;
 import com.kilivana.users.domain.SupplierProfile;
 import com.kilivana.users.domain.User;
@@ -26,6 +26,7 @@ import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Locale;
+import com.kilivana.users.service.AccountIdentity;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -77,7 +78,18 @@ public class AuthService {
         }
         validateRoleProfileData(request);
 
+        String username = AccountIdentity.username(request.username());
+        String region = AccountIdentity.region(request.region());
+        if (request.farmLocation() != null && (request.role() != UserRole.FARMER
+                || !region.equals(AccountIdentity.region(request.farmLocation())))) {
+            throw new InvalidAccountDataException("farmLocation is deprecated and must match Farmer region");
+        }
+        if (userRepository.existsByUsername(username)) {
+            throw new BusinessConflictException("Username is already registered");
+        }
         User user = registerUser(request.email(), request.password(), request.fullName(), request.phoneNumber(), request.role());
+        user.setUsername(username);
+        user.setRegion(region);
         if (request.role() == UserRole.INSPECTOR) {
             user.markVerification(VerificationStatus.PENDING);
         }
@@ -104,6 +116,10 @@ public class AuthService {
 
     private User registerUser(String email, String rawPassword, String fullName, String phoneNumber, UserRole role) {
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+        String canonicalPhone = AccountIdentity.phone(phoneNumber);
+        if (userRepository.existsByPhoneNumber(canonicalPhone)) {
+            throw new BusinessConflictException("Phone number is already registered");
+        }
         if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new BusinessConflictException("Email is already registered");
         }
@@ -111,17 +127,32 @@ public class AuthService {
                 normalizedEmail,
                 passwordEncoder.encode(rawPassword),
                 fullName.trim(),
-                phoneNumber.trim(),
+                canonicalPhone,
                 role,
                 UserStatus.ACTIVE);
         return userRepository.save(user);
     }
 
     public AuthResponse login(LoginRequest request) {
-        String email = request.email().trim().toLowerCase();
+        String identifier = request.identifier().trim();
+        String email;
+        if (identifier.contains("@")) {
+            email = identifier.toLowerCase(Locale.ROOT);
+        } else {
+            String phone;
+            try {
+                phone = AccountIdentity.phone(identifier);
+            } catch (IllegalArgumentException exception) {
+                throw new AuthenticationFailedException("Invalid credentials");
+            }
+            email = userRepository.findByPhoneNumber(phone).map(User::getEmail)
+                    .orElse(null);
+        }
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, request.password()));
-
+                new UsernamePasswordAuthenticationToken(email == null ? "" : email, request.password()));
+        if (email == null) {
+            throw new AuthenticationFailedException("Invalid credentials");
+        }
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AuthenticationFailedException("Invalid credentials"));
         if (user.getStatus() != UserStatus.ACTIVE) {
@@ -180,8 +211,8 @@ public class AuthService {
         if (request.role() == UserRole.SUPPLIER && isBlank(request.businessName())) {
             throw new BusinessConflictException("Supplier accounts require businessName");
         }
-        if (request.role() == UserRole.FARMER && (isBlank(request.farmName()) || isBlank(request.farmLocation()))) {
-            throw new BusinessConflictException("Farmer accounts require farmName and farmLocation");
+        if (request.role() == UserRole.FARMER && isBlank(request.farmName())) {
+            throw new BusinessConflictException("Farmer accounts require farmName");
         }
         if (request.role() == UserRole.INSPECTOR && isBlank(request.employeeCode())) {
             throw new BusinessConflictException("Inspector accounts require employeeCode");
@@ -195,7 +226,7 @@ public class AuthService {
             case FARMER -> entityManager.persist(new FarmerProfile(
                     user,
                     request.farmName().trim(),
-                    request.farmLocation().trim()));
+                    user.getRegion()));
             case INSPECTOR -> entityManager.persist(new InspectorProfile(user, request.employeeCode().trim()));
             case DRIVER, ADMIN -> throw new BusinessConflictException("Role is not available for public registration");
         }
@@ -219,6 +250,9 @@ public class AuthService {
         return new AuthResponse(
                 user.getId(),
                 user.getEmail(),
+                user.getUsername(),
+                user.getRegion(),
+                user.getPhoneNumber(),
                 user.getFullName(),
                 user.getRole(),
                 user.getVerificationStatus(),

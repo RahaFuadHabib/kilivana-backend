@@ -1,6 +1,7 @@
 package com.kilivana.users.service;
 
 import com.kilivana.common.exception.BusinessConflictException;
+import com.kilivana.common.exception.InvalidAccountDataException;
 import com.kilivana.common.exception.ResourceNotFoundException;
 import com.kilivana.common.exception.UnauthorizedOperationException;
 import com.kilivana.security.AuthenticatedUser;
@@ -91,7 +92,7 @@ public class UserService {
         if (user.getRole() == UserRole.FARMER) {
             Optional<FarmerProfile> profile = farmerProfileRepository.findByUserId(user.getId());
             farmName = profile.map(FarmerProfile::getFarmName).orElse(null);
-            farmLocation = profile.map(FarmerProfile::getFarmLocation).orElse(null);
+            farmLocation = user.getRegion() == null ? profile.map(FarmerProfile::getFarmLocation).orElse(null) : user.getRegion();
         }
         return new PublicSellerProfileResponse(
                 user.getId(),
@@ -159,37 +160,61 @@ public class UserService {
         User user = userRepository.findById(actor.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         requireActive(user);
-        if (request.fullName() != null && !request.fullName().isBlank()) {
-            user.setFullName(request.fullName().trim());
+        String region = request.region() == null ? user.getRegion() : AccountIdentity.region(request.region());
+        if (request.farmLocation() != null) {
+            if (user.getRole() != UserRole.FARMER) {
+                throw new InvalidAccountDataException("farmLocation is only supported for Farmers");
+            }
+            String legacyRegion = AccountIdentity.region(request.farmLocation());
+            if (request.region() != null && !legacyRegion.equals(region)) {
+                throw new InvalidAccountDataException("farmLocation must match region");
+            }
+            region = legacyRegion;
         }
-        if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
-            user.setPhoneNumber(request.phoneNumber().trim());
+        if (request.username() != null) {
+            String username = AccountIdentity.username(request.username());
+            if (userRepository.existsByUsernameAndIdNot(username, user.getId())) {
+                throw new BusinessConflictException("Username is already registered");
+            }
+            user.setUsername(username);
+        }
+        if (request.phoneNumber() != null) {
+            String phone = AccountIdentity.phone(request.phoneNumber());
+            if (userRepository.existsByPhoneNumberAndIdNot(phone, user.getId())) {
+                throw new BusinessConflictException("Phone number is already registered");
+            }
+            user.setPhoneNumber(phone);
+        }
+        user.setRegion(region);
+        if (request.fullName() != null) {
+            user.setFullName(AccountIdentity.required(request.fullName(), "fullName", 100));
         }
         switch (user.getRole()) {
             case SUPPLIER -> supplierProfileRepository.findByUserId(user.getId())
                     .ifPresent(profile -> {
-                        if (request.businessName() != null && !request.businessName().isBlank()) {
-                            profile.updateBusinessName(request.businessName().trim());
+                        if (request.businessName() != null) {
+                            profile.updateBusinessName(AccountIdentity.required(request.businessName(), "businessName", 150));
                         }
                     });
             case FARMER -> farmerProfileRepository.findByUserId(user.getId())
                     .ifPresent(profile -> {
-                        String newFarmName = request.farmName() == null || request.farmName().isBlank()
+                        String newFarmName = request.farmName() == null
                                 ? profile.getFarmName()
-                                : request.farmName().trim();
-                        String newFarmLocation = request.farmLocation() == null || request.farmLocation().isBlank()
-                                ? profile.getFarmLocation()
-                                : request.farmLocation().trim();
+                                : AccountIdentity.required(request.farmName(), "farmName", 150);
+                        String newFarmLocation = user.getRegion() == null ? profile.getFarmLocation() : user.getRegion();
                         profile.updateFarm(newFarmName, newFarmLocation);
                     });
             case DRIVER -> driverProfileRepository.findByUserId(user.getId())
                     .ifPresent(profile -> {
-                        if (request.vehicleType() != null && request.vehiclePlate() != null
-                                && !request.vehicleType().isBlank() && !request.vehiclePlate().isBlank()) {
-                            profile.updateVehicle(request.vehicleType().trim(), request.vehiclePlate().trim());
+                        if (request.vehicleType() != null || request.vehiclePlate() != null) {
+                            String vehicleType = request.vehicleType() == null ? profile.getVehicleType()
+                                    : AccountIdentity.required(request.vehicleType(), "vehicleType", 100);
+                            String vehiclePlate = request.vehiclePlate() == null ? profile.getVehiclePlate()
+                                    : AccountIdentity.required(request.vehiclePlate(), "vehiclePlate", 50);
+                            profile.updateVehicle(vehicleType, vehiclePlate);
                         }
-                        if (request.serviceArea() != null && !request.serviceArea().isBlank()) {
-                            profile.updateServiceArea(request.serviceArea().trim());
+                        if (request.serviceArea() != null) {
+                            profile.updateServiceArea(AccountIdentity.required(request.serviceArea(), "serviceArea", 150));
                         }
                     });
             default -> { }
@@ -228,7 +253,7 @@ public class UserService {
             case FARMER -> {
                 Optional<FarmerProfile> profile = farmerProfileRepository.findByUserId(userId);
                 farmName = profile.map(FarmerProfile::getFarmName).orElse(null);
-                farmLocation = profile.map(FarmerProfile::getFarmLocation).orElse(null);
+                farmLocation = user.getRegion() == null ? profile.map(FarmerProfile::getFarmLocation).orElse(null) : user.getRegion();
             }
             case INSPECTOR -> employeeCode = inspectorProfileRepository.findByUserId(userId)
                     .map(InspectorProfile::getEmployeeCode)
@@ -245,6 +270,8 @@ public class UserService {
         return new UserProfileResponse(
                 user.getId(),
                 user.getEmail(),
+                user.getUsername(),
+                user.getRegion(),
                 user.getFullName(),
                 user.getPhoneNumber(),
                 user.getRole(),

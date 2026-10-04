@@ -46,7 +46,7 @@ export ADMIN_BOOTSTRAP_KEY=some-long-bootstrap-key
 ./mvnw spring-boot:run
 ```
 
-Flyway automatically applies all 10 migrations (`V1`–`V10`) on startup. The API is now live at `http://localhost:8080/api/v1`.
+Flyway automatically applies all 11 migrations (`V1`–`V11`) on startup. The API is now live at `http://localhost:8080/api/v1`.
 
 ### 3. Create the first admin
 
@@ -54,7 +54,7 @@ Flyway automatically applies all 10 migrations (`V1`–`V10`) on startup. The AP
 curl -X POST http://localhost:8080/api/v1/admins/signup \
   -H "X-Admin-Bootstrap-Key: $ADMIN_BOOTSTRAP_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"changeit123","fullName":"Admin","phoneNumber":"+254700000000"}'
+  -d '{"identifier":"admin@example.com","password":"changeit123","fullName":"Admin","phoneNumber":"+254700000000"}'
 ```
 
 ### 4. Log in
@@ -62,7 +62,7 @@ curl -X POST http://localhost:8080/api/v1/admins/signup \
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"changeit123"}'
+  -d '{"identifier":"admin@example.com","password":"changeit123"}'
 ```
 
 You'll get back an `accessToken` (lasts 15 minutes) and a `refreshToken` (lasts 14 days). Use the access token in all subsequent requests:
@@ -119,6 +119,8 @@ Kilivana uses **JWT (HS256)** with a two-token system:
 | **Access token** | 15 minutes | Sent as `Authorization: Bearer <token>` on every API request |
 | **Refresh token** | 14 days | Exchanged for a new access token when the old one expires |
 
+See [the account/auth contract](docs/account-auth-contract.md) for signup fields, identity rules, profile updates, compatibility and V11 deployment details. Login accepts `identifier` (email or Kenyan phone), never username.
+
 ### The four core auth schemas
 
 These are the exact JSON shapes the Android/iOS clients need (also in `auth-schemas-json.txt` and `auth-schemas-for-android.txt`):
@@ -127,7 +129,7 @@ These are the exact JSON shapes the Android/iOS clients need (also in `auth-sche
 
 ```json
 {
-  "email": "user@example.com",
+  "identifier": "user@example.com",
   "password": "password123"
 }
 ```
@@ -138,8 +140,12 @@ These are the exact JSON shapes the Android/iOS clients need (also in `auth-sche
 {
   "userId": "550e8400-e29b-41d4-a716-446655440000",
   "email": "user@example.com",
+  "username": "jane_farmer",
+  "region": "Kiambu",
+  "phoneNumber": "+254712345678",
   "fullName": "Jane Farmer",
   "role": "FARMER",
+  "verificationStatus": "UNVERIFIED",
   "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
   "refreshToken": "eyJhbGciOiJIUzI1NiJ9...",
   "refreshTokenExpiresAt": "2026-10-12T10:00:00Z"
@@ -173,7 +179,7 @@ Revokes the entire refresh token family. Returns `200 OK` with no body.
 ```
 Client                          Server
   |                               |
-  |-- POST /auth/login ---------->|  (email + password)
+  |-- POST /auth/login ---------->|  (email or phone identifier + password)
   |<- accessToken + refreshToken -|
   |                               |
   |-- GET /products ------------->|  (Bearer accessToken)
@@ -194,7 +200,7 @@ Client                          Server
 
 | Endpoint | Description |
 |---|---|
-| `POST /api/v1/auth/signup` | Public registration (buyer/supplier/farmer) |
+| `POST /api/v1/auth/signup` | Public registration (buyer/supplier/farmer/inspector) |
 | `POST /api/v1/auth/forgot-password` | Request a password reset email |
 | `POST /api/v1/auth/reset-password` | Reset password with token from email |
 | `GET /api/v1/auth/me` | Get current user's profile (requires auth) |
@@ -367,7 +373,7 @@ Order, payment, logistics, inspection, and contact events are published asynchro
 
 ## Database & Migrations
 
-PostgreSQL schema is managed by **Flyway** (10 migrations, applied automatically on startup):
+PostgreSQL schema is managed by **Flyway** (11 migrations, applied automatically on startup):
 
 | Migration | What it creates |
 |---|---|
@@ -381,6 +387,7 @@ PostgreSQL schema is managed by **Flyway** (10 migrations, applied automatically
 | V8 | Notifications, disputes, audit logs |
 | V9 | Delivery fees, order totals |
 | V10 | Refresh token family ID (for rotation tracking) |
+| V11 | Canonical username, common region, normalized unique Kenyan phones (Java migration) |
 
 ---
 
@@ -487,7 +494,7 @@ KILIVANA/
 │   │   │   └── common/         ← Shared infrastructure
 │   │   └── resources/
 │   │       ├── application.yml ← Main configuration
-│   │       └── db/migration/   ← Flyway migrations (V1–V10)
+│   │       └── db/migration/   ← Flyway migrations (V1–V11)
 │   └── test/java/com/kilivana/ ← 80 tests (unit + integration)
 ├── client/
 │   ├── mobile/                 ← React Native (Expo) main app

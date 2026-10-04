@@ -67,11 +67,21 @@ class FulfillmentExtensionsIntegrationTest extends IntegrationTestSupport {
 
         mockMvc.perform(get("/api/v1/contact-messages")
                         .header("Authorization", "Bearer " + signup(new SignupRequest(
-                                "peer@example.com",
-                                "secretPass1",
-                                "Peer User",
-                                "+254700000060",
-                                UserRole.BUYER, null, null, null, null, null, null, null, null)).accessToken()))
+                "peer@example.com",
+                "secretPass1",
+                "Peer User",
+                "+254700000060",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
+                UserRole.BUYER,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null)).accessToken()))
                 .andExpect(status().isForbidden());
 
         AuthResponse admin = adminSignup("admin-cm@kilivana.example");
@@ -341,6 +351,8 @@ class FulfillmentExtensionsIntegrationTest extends IntegrationTestSupport {
                 "secretPass1",
                 "Farmer User",
                 "+254700000070",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                farmLocation,
                 UserRole.FARMER,
                 null,
                 farmName,
@@ -358,6 +370,8 @@ class FulfillmentExtensionsIntegrationTest extends IntegrationTestSupport {
                 "secretPass1",
                 "Supplier User",
                 "+254700000080",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
                 UserRole.SUPPLIER,
                 businessName,
                 null,
@@ -375,6 +389,8 @@ class FulfillmentExtensionsIntegrationTest extends IntegrationTestSupport {
                 "secretPass1",
                 "Inspector User",
                 "+254700000090",
+                "test_" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 25),
+                "Nairobi",
                 UserRole.INSPECTOR,
                 null,
                 null,
