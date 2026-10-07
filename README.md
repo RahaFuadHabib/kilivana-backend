@@ -1,5 +1,7 @@
 # Kilivana Backend
 
+For Android backend porting, start with [the handoff contract and migration warnings](docs/ANDROID_BACKEND_HANDOFF.md).
+
 **Kilivana** is an agricultural e-commerce and logistics platform connecting **farmers, buyers, suppliers, inspectors, drivers, and admins** through a single REST API. Think of it as a full marketplace backend: farmers and suppliers list produce, buyers order it, inspectors verify quality, drivers deliver it, and admins oversee everything.
 
 ---
