@@ -17,7 +17,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface ProductRepository extends JpaRepository<Product, UUID> {
 
-    @EntityGraph(attributePaths = "owner")
+    @EntityGraph(attributePaths = {"owner", "category"})
     Optional<Product> findWithOwnerById(UUID id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -30,10 +30,10 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @EntityGraph(attributePaths = "owner")
     List<Product> findByStatusAndSector(ProductStatus status, Sector sector);
 
-    @EntityGraph(attributePaths = "owner")
+    @EntityGraph(attributePaths = {"owner", "category"})
     List<Product> findByOwnerId(UUID ownerId);
 
-    @EntityGraph(attributePaths = "owner")
+    @EntityGraph(attributePaths = {"owner", "category"})
     List<Product> findByStatusAndOwnerId(ProductStatus status, UUID ownerId);
 
     @Query("""

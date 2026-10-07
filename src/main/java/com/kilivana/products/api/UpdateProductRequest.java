@@ -5,6 +5,9 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/** Partial update: omitted or null fields preserve their current values, including categoryId.
+ * Clearing a category or low-stock threshold is not represented by this request.
+ */
 public record UpdateProductRequest(
         @Size(max = 150) String title,
         @Size(max = 1000) String description,

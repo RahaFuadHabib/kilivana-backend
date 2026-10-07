@@ -119,11 +119,12 @@ public class ProductService {
 
         User owner = userRepository.findById(actor.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        Category category = resolveCategory(request.categoryId());
+        Sector sector = role == UserRole.FARMER ? Sector.FARM_PRODUCE : Sector.AGRI_INPUTS;
+        Category category = resolveCategory(request.categoryId(), sector);
         Product product = new Product(
                 owner,
                 role == UserRole.FARMER ? SellerType.FARMER : SellerType.SUPPLIER,
-                role == UserRole.FARMER ? Sector.FARM_PRODUCE : Sector.AGRI_INPUTS,
+                sector,
                 ProductStatus.ACTIVE,
                 category,
                 request.title().trim(),
@@ -141,15 +142,16 @@ public class ProductService {
     public ProductResponse update(UUID productId, UpdateProductRequest request) {
         AuthenticatedUser actor = currentUser.required();
         Product product = requireOwnedProduct(productId, actor);
-        Category category = resolveCategory(request.categoryId());
+        Category category = request.categoryId() == null ? product.getCategory()
+                : resolveCategory(request.categoryId(), product.getSector());
         product.update(
-                request.title().trim(),
-                request.description().trim(),
-                request.unit().trim(),
-                request.unitPrice(),
-                request.availableQuantity(),
+                request.title() == null ? product.getTitle() : request.title().trim(),
+                request.description() == null ? product.getDescription() : request.description().trim(),
+                request.unit() == null ? product.getUnit() : request.unit().trim(),
+                request.unitPrice() == null ? product.getUnitPrice() : request.unitPrice(),
+                request.availableQuantity() == null ? product.getAvailableQuantity() : request.availableQuantity(),
                 category,
-                request.lowStockThreshold(),
+                request.lowStockThreshold() == null ? product.getLowStockThreshold() : request.lowStockThreshold(),
                 request.minimumOrderQuantity() == null ? product.getMinimumOrderQuantity() : request.minimumOrderQuantity());
         return toResponse(product);
     }
@@ -243,12 +245,19 @@ public class ProductService {
         return product;
     }
 
-    private Category resolveCategory(UUID categoryId) {
+    private Category resolveCategory(UUID categoryId, Sector sector) {
         if (categoryId == null) {
             return null;
         }
-        return categoryRepository.findById(categoryId)
+        Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+        if (!category.isActive()) {
+            throw new BusinessConflictException("Category is inactive");
+        }
+        if (category.getSector() != sector) {
+            throw new BusinessConflictException("Category sector must match product sector");
+        }
+        return category;
     }
 
     private ProductResponse toResponse(Product product) {
