@@ -78,6 +78,10 @@ public class ProductImage extends BaseEntity {
         return url;
     }
 
+    public void updateUrl(String url) {
+        this.url = url;
+    }
+
     public int getSortOrder() {
         return sortOrder;
     }

@@ -183,9 +183,16 @@ public class ProductService {
     @Transactional
     public ProductImageResponse registerImage(UUID productId, String fileName, String contentType, long sizeBytes, String url) {
         AuthenticatedUser actor = currentUser.required();
-        Product product = requireOwnedProduct(productId, actor);
+        Product product = productRepository.findWithOwnerByIdForUpdate(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        if (!product.getOwner().getId().equals(actor.getId())) {
+            throw new UnauthorizedOperationException("You can only manage your own products");
+        }
         String storageKey = "product-" + productId + "-" + UUID.randomUUID();
         int sortOrder = productImageRepository.findByProductIdOrderBySortOrderAsc(productId).size();
+        if (sortOrder >= ProductImageService.MAX_IMAGES) {
+            throw new BusinessConflictException("A product can have at most 10 images");
+        }
         ProductImage image = new ProductImage(product, storageKey, fileName, contentType, sizeBytes, url, sortOrder);
         productImageRepository.save(image);
         return toResponse(image);
